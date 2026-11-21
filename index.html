@@ -32,9 +32,9 @@
       <label for="no">Öğrenci numarası</label>
       <input id="no" inputmode="numeric" autocomplete="off" required>
     </div>
-    <div class="alan" id="adalan" hidden style="margin-top:12px">
-      <label for="ad">Ad Soyad <span class="muted">(isteğe bağlı)</span></label>
-      <input id="ad" autocomplete="name">
+    <div class="alan" style="margin-top:12px">
+      <label for="ad">Ad Soyad</label>
+      <input id="ad" autocomplete="name" required minlength="3">
     </div>
     <p class="muted">Gönderince telefon konum izni isteyecek. Yoklama yalnızca sınıftan alınır.</p>
     <button id="gonder">Yoklamaya katıl</button>
@@ -60,8 +60,7 @@ function sonuc(ok, metin) {
     const r = await api({ islem: 'bilet', t });
     if (!r.ok) return sonuc(false, r.neden);
     bilet = r.bilet;
-    $('adalan').hidden = !!r.listeVar;
-    $('durum').textContent = (r.ders ? r.ders + ' · ' : '') + `Numaranızı girin (${Math.round(r.sure / 60)} dakikanız var).`;
+    $('durum').textContent = (r.ders ? r.ders + ' · ' : '') + `Numaranızı ve adınızı girin (${Math.round(r.sure / 60)} dakikanız var).`;
     $('f').hidden = false; $('no').focus();
   } catch (e) { sonuc(false, 'Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip QR\'ı yeniden okutun.'); }
 })();
