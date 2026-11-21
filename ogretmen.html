@@ -36,9 +36,17 @@
   .closed{font-size:22px;color:var(--muted);padding:60px 10px}
   #girisekran{max-width:380px;margin:12vh auto;display:flex;flex-direction:column;gap:12px}
   #girisekran input,#girisekran button{padding:12px;font-size:17px}
-  #sinifqr{width:140px;height:140px;flex:none}
   #sinifqr img,#sinifqr canvas{width:100%!important;height:auto!important}
-  .bad{color:var(--bad)}
+  .bad{color:var(--bad)} .ok{color:var(--ok)}
+  .sayi{display:flex;align-items:center;gap:10px}
+  .ikon{width:40px;height:40px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ikon.kucuk{width:18px;height:18px;vertical-align:-3px}
+  .kalan{font-size:20px;font-variant-numeric:tabular-nums}
+  .arti{width:38px;height:38px;padding:0;font-size:22px;line-height:1;border-radius:50%}
+  .perde{position:fixed;inset:0;background:rgba(15,25,20,.55);display:grid;place-items:center;z-index:20}
+  .eklekart{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px}
+  #sinifqr{width:min(380px,70vw);height:auto}
+  .kapat{position:absolute;top:8px;right:8px;width:36px;height:36px;padding:0;font-size:22px;background:transparent;color:var(--muted);border-color:var(--line)}
 </style>
 </head>
 <body>
@@ -56,44 +64,48 @@
     <h1 id="baslik">Yoklama</h1>
     <div id="qrwrap" hidden><div id="qr"></div></div>
     <div class="bar" id="bar" hidden><i id="barfill"></i></div>
-    <div id="kapali" class="closed">Yoklama kapalı.</div>
-    <div><span class="big" id="sayac">0</span> <span class="muted" id="sayacnot">kişi kaydoldu</span></div>
-    <div class="muted" id="kalan"></div>
+    <div id="kapali" class="closed">Yoklama kapalı</div>
+    <div class="sayi"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span class="big" id="sayac">0</span></div>
+    <div class="muted kalan" id="kalan"></div>
     <div class="bad" id="uyari"></div>
   </section>
 
   <div class="stack">
     <section class="panel">
-      <h2>Yoklamayı başlat</h2>
+      <h2>Yoklama</h2>
       <div class="row">
-        <label for="sinif">Sınıf</label><select id="sinif"></select>
-        <label for="ders">Ders</label><input id="ders" placeholder="ör. Tekstil Terbiyesi" style="flex:1;min-width:140px">
+        <label for="sinif">Sınıf</label><select id="sinif" style="min-width:150px"><option disabled selected>Sınıf yok</option></select>
+        <button id="sinifekle" class="arti" title="Sınıf ekle" aria-label="Sınıf ekle">+</button>
+        <label for="ders">Ders</label><input id="ders" style="flex:1;min-width:140px">
       </div>
       <div class="row" style="margin-top:8px">
         <label for="dk">Süre (dk)</label><input id="dk" type="number" min="1" max="180" value="120" style="width:80px">
+        <label for="r">Sınır (m)</label><input id="r" type="number" min="20" max="2000" style="width:80px">
         <button id="baslat">Başlat</button>
         <button id="bitir" class="sec">Bitir</button>
       </div>
-      <p id="baslatnot" class="muted" style="margin:8px 0 0" hidden>Listede sınıf yok. Önce aşağıdan sınıfın konumunu kaydedin.</p>
     </section>
 
     <section class="panel">
       <h2>Kayıtlar</h2>
-      <div class="tbl"><table><thead><tr><th>Saat</th><th>No</th><th>Ad</th><th>Durum</th><th>Mesafe</th></tr></thead>
-        <tbody id="liste"><tr><td colspan="5" class="muted">Henüz kayıt yok.</td></tr></tbody></table></div>
-      <p class="muted" style="margin:10px 0 0;font-size:13px">Yoklama kapanınca E-Tablo'daki "Çizelge" sayfası kendiliğinden güncellenir (öğrenciler × yoklama günleri).</p>
+      <div class="tbl"><table><thead><tr><th>No</th><th>Ad Soyad</th></tr></thead>
+        <tbody id="liste"><tr><td colspan="2" class="muted">—</td></tr></tbody></table></div>
+      <div class="row" style="margin-top:10px"><button id="elleac" class="sec">+ Elle ekle</button></div>
+      <form id="elleform" class="row" style="margin-top:8px" hidden>
+        <input id="elleno" inputmode="numeric" placeholder="No" aria-label="Öğrenci no" style="width:140px">
+        <input id="ellead" placeholder="Ad Soyad" aria-label="Ad Soyad" style="flex:1;min-width:140px">
+        <button>Ekle</button>
+        <span id="ellenot" aria-live="polite"></span>
+      </form>
     </section>
+  </div>
+</div>
 
-    <section class="panel">
-      <h2>Sınıf konumu ekle</h2>
-      <div class="row" style="align-items:flex-start;flex-wrap:nowrap">
-        <div id="sinifqr"></div>
-        <div style="min-width:0">
-          <p style="margin:0 0 8px">Yeni bir sınıfta, bu QR'ı <b>kendi telefonunuzla</b> okutun, şifrenizi girip sınıfın adını yazın.</p>
-          <div class="row"><label for="r">Sınır (m)</label><input id="r" type="number" min="20" max="2000" style="width:90px"><button id="rkaydet" class="sec">Kaydet</button></div>
-        </div>
-      </div>
-    </section>
+<div id="ekleperde" class="perde" hidden>
+  <div class="panel eklekart" role="dialog" aria-label="Sınıf ekle">
+    <button id="eklekapat" class="kapat" aria-label="Kapat">×</button>
+    <svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+    <div id="sinifqr"></div>
   </div>
 </div>
 
@@ -113,7 +125,7 @@ function girisGoster(not) {
 function anaGoster() {
   $('girisekran').hidden = true; $('ana').hidden = false;
   $('sinifqr').innerHTML = '';
-  new QRCode($('sinifqr'), { text: new URL('sinif.html', location.href).href, width: 280, height: 280, correctLevel: QRCode.CorrectLevel.M });
+  new QRCode($('sinifqr'), { text: new URL('sinif.html', location.href).href, width: 500, height: 500, correctLevel: QRCode.CorrectLevel.M });
   yenile(); clearInterval(zamanlayici); zamanlayici = setInterval(yenile, 2000);
 }
 
@@ -134,17 +146,19 @@ async function yenile() {
   if (!rDolu) { $('r').value = d.yaricap; rDolu = true; }
   const adlar = d.siniflar.map(s => s.ad).join('|');
   if (adlar !== sinifDolu) {
+    const onceki = sinifDolu ? sinifDolu.split('|') : [];
+    const yeni = d.siniflar.map(s => s.ad).filter(a => !onceki.includes(a));
     sinifDolu = adlar;
-    const secili = $('sinif').value;
-    $('sinif').innerHTML = '';
+    let secili = $('sinif').value;
+    if (!$('ekleperde').hidden && yeni.length) { secili = yeni[0]; $('ekleperde').hidden = true; } // yeni sınıf eklendi
+    $('sinif').innerHTML = d.siniflar.length ? '' : '<option disabled selected>Sınıf yok</option>';
     d.siniflar.forEach(s => { const o = document.createElement('option'); o.value = o.textContent = s.ad; $('sinif').appendChild(o); });
     if (secili && d.siniflar.some(s => s.ad === secili)) $('sinif').value = secili;
   }
   $('baslat').disabled = !d.siniflar.length || d.acik;
-  $('baslatnot').hidden = !!d.siniflar.length;
 
   $('qrwrap').hidden = !d.acik; $('bar').hidden = !d.acik; $('kapali').hidden = d.acik;
-  $('baslik').textContent = d.oturum ? [d.oturum.ders, d.oturum.sinif].filter(Boolean).join(' · ') || 'Yoklama' : 'Yoklama';
+  $('baslik').textContent = d.acik ? [d.oturum.ders, d.oturum.sinif].filter(Boolean).join(' · ') || 'Yoklama' : 'Yoklama';
   if (d.acik) {
     if (d.jeton !== sonJeton) {
       sonJeton = d.jeton;
@@ -152,28 +166,21 @@ async function yenile() {
       else { qr.clear(); qr.makeCode(ogrenciAdresi(d.jeton)); }
     }
     $('barfill').style.width = Math.max(0, Math.min(100, d.sonraki / 10 * 100)) + '%';
-    const m = Math.floor(d.oturum.kalan / 60), s = d.oturum.kalan % 60;
-    $('kalan').textContent = `Kapanmasına ${m}:${String(s).padStart(2, '0')} · QR 10 saniyede bir değişir`;
-    $('kapali').textContent = 'Yoklama kapalı.';
+    const k2 = d.oturum.kalan, sa = Math.floor(k2 / 3600), dk = Math.floor(k2 % 3600 / 60), sn = k2 % 60;
+    $('kalan').textContent = '⏱ ' + (sa ? sa + ':' + String(dk).padStart(2, '0') : dk) + ':' + String(sn).padStart(2, '0');
   } else {
     sonJeton = ''; $('kalan').textContent = '';
-    $('kapali').textContent = d.oturum ? 'Yoklama kapandı.' : 'Yoklama kapalı. Sağdan başlatın.';
+    $('kapali').textContent = 'Yoklama kapalı';
   }
 
-  const k = d.kayitlar || [];
-  const gelen = k.filter(r => r.durum !== 'reddedildi').length;
-  $('sayac').textContent = gelen;
+  const k = (d.kayitlar || []).filter(r => r.durum !== 'reddedildi');
+  $('sayac').textContent = k.length;
   const tb = $('liste');
   tb.innerHTML = '';
-  if (!k.length) tb.innerHTML = '<tr><td colspan="5" class="muted">Henüz kayıt yok.</td></tr>';
+  if (!k.length) tb.innerHTML = '<tr><td colspan="2" class="muted">—</td></tr>';
   [...k].reverse().forEach(r => {
     const tr = document.createElement('tr');
-    [String(r.zaman).slice(-8), r.no, r.ad, null, r.mesafe !== '' ? `${r.mesafe} m (±${r.acc})` : '—'].forEach((c, i) => {
-      const td = document.createElement('td');
-      if (i === 3) { const s = document.createElement('span'); s.className = 'pill p-' + r.durum; s.textContent = r.durum; td.appendChild(s); if (r.aciklama) td.title = r.aciklama; }
-      else td.textContent = c;
-      tr.appendChild(td);
-    });
+    [r.no, r.ad].forEach(c => { const td = document.createElement('td'); td.textContent = c; tr.appendChild(td); });
     tb.appendChild(tr);
   });
 }
@@ -193,7 +200,21 @@ $('baslat').onclick = async () => {
   yenile();
 };
 $('bitir').onclick = async () => { try { await ogretmenApi({ islem: 'bitir' }); } catch (e) {} yenile(); };
-$('rkaydet').onclick = async () => { try { await ogretmenApi({ islem: 'yaricap', m: +$('r').value }); rDolu = false; } catch (e) {} yenile(); };
+$('r').onchange = async () => { try { await ogretmenApi({ islem: 'yaricap', m: +$('r').value }); rDolu = false; } catch (e) {} yenile(); };
+$('elleac').onclick = () => { $('elleform').hidden = !$('elleform').hidden; if (!$('elleform').hidden) $('elleno').focus(); };
+$('elleform').onsubmit = async ev => {
+  ev.preventDefault();
+  const not = $('ellenot'); not.className = 'muted'; not.textContent = '…';
+  try {
+    const r = await ogretmenApi({ islem: 'elleEkle', no: $('elleno').value, ad: $('ellead').value });
+    if (r.ok) { not.className = 'ok'; not.textContent = '✓ ' + r.no; $('elleno').value = ''; $('ellead').value = ''; $('elleno').focus(); yenile(); }
+    else { not.className = 'bad'; not.textContent = r.neden; }
+  } catch (e) { if (e.message !== 'yetki') { not.className = 'bad'; not.textContent = 'Gönderilemedi'; } }
+};
+$('sinifekle').onclick = () => { $('ekleperde').hidden = false; };
+$('eklekapat').onclick = () => { $('ekleperde').hidden = true; };
+$('ekleperde').onclick = ev => { if (ev.target === $('ekleperde')) $('ekleperde').hidden = true; };
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') $('ekleperde').hidden = true; });
 
 // Sekmeye geri dönülünce QR hemen yenilensin
 document.addEventListener('visibilitychange', () => { if (!document.hidden && tok) yenile(); });
