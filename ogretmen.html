@@ -81,8 +81,7 @@
       <h2>Kayıtlar</h2>
       <div class="tbl"><table><thead><tr><th>Saat</th><th>No</th><th>Ad</th><th>Durum</th><th>Mesafe</th></tr></thead>
         <tbody id="liste"><tr><td colspan="5" class="muted">Henüz kayıt yok.</td></tr></tbody></table></div>
-      <details id="gelmeyenkutu" style="margin-top:10px" hidden><summary id="gelmeyenbaslik">Gelmeyenler</summary><p id="gelmeyenler" class="muted" style="margin:6px 0 0"></p></details>
-      <p class="muted" style="margin:10px 0 0;font-size:13px">Tüm kayıtlar Google E-Tablo'daki "Kayıtlar" sayfasında; oradan Excel olarak indirebilirsiniz.</p>
+      <p class="muted" style="margin:10px 0 0;font-size:13px">Yoklama kapanınca E-Tablo'daki "Çizelge" sayfası kendiliğinden güncellenir (öğrenciler × yoklama günleri).</p>
     </section>
 
     <section class="panel">
@@ -162,7 +161,7 @@ async function yenile() {
 
   const k = d.kayitlar || [];
   const gelen = k.filter(r => r.durum !== 'reddedildi').length;
-  $('sayac').textContent = d.ogrenciSayisi ? `${gelen} / ${d.ogrenciSayisi}` : gelen;
+  $('sayac').textContent = gelen;
   const tb = $('liste');
   tb.innerHTML = '';
   if (!k.length) tb.innerHTML = '<tr><td colspan="5" class="muted">Henüz kayıt yok.</td></tr>';
@@ -176,11 +175,6 @@ async function yenile() {
     });
     tb.appendChild(tr);
   });
-
-  const g = d.gelmeyenler || [];
-  $('gelmeyenkutu').hidden = !d.oturum || !d.ogrenciSayisi;
-  $('gelmeyenbaslik').textContent = `Gelmeyenler (${g.length})`;
-  $('gelmeyenler').textContent = g.length ? g.map(x => `${x.no} ${x.ad}`).join(' · ') : 'Herkes burada.';
 }
 
 $('girisekran').onsubmit = async ev => {
