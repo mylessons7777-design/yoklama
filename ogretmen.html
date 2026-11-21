@@ -70,7 +70,7 @@
         <label for="ders">Ders</label><input id="ders" placeholder="ör. Tekstil Terbiyesi" style="flex:1;min-width:140px">
       </div>
       <div class="row" style="margin-top:8px">
-        <label for="dk">Süre (dk)</label><input id="dk" type="number" min="1" max="30" value="5" style="width:70px">
+        <label for="dk">Süre (dk)</label><input id="dk" type="number" min="1" max="180" value="120" style="width:80px">
         <button id="baslat">Başlat</button>
         <button id="bitir" class="sec">Bitir</button>
       </div>
@@ -124,6 +124,7 @@ async function ogretmenApi(govde) {
 }
 
 async function yenile() {
+  if (document.hidden) return; // sekme arkadayken Google'a istek gönderme
   if (istekte) return; istekte = true;
   let d;
   try { d = await ogretmenApi({ islem: 'durum' }); $('uyari').textContent = ''; }
@@ -193,6 +194,9 @@ $('baslat').onclick = async () => {
 };
 $('bitir').onclick = async () => { try { await ogretmenApi({ islem: 'bitir' }); } catch (e) {} yenile(); };
 $('rkaydet').onclick = async () => { try { await ogretmenApi({ islem: 'yaricap', m: +$('r').value }); rDolu = false; } catch (e) {} yenile(); };
+
+// Sekmeye geri dönülünce QR hemen yenilensin
+document.addEventListener('visibilitychange', () => { if (!document.hidden && tok) yenile(); });
 
 if (tok) anaGoster(); else girisGoster();
 </script>
