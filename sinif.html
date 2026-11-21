@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sınıf Konumu</title>
+<style>
+  :root{--bg:#f3f5f4;--fg:#17201c;--muted:#5d6b64;--accent:#0f6b4f;--ok:#1d7a3e;--bad:#b3261e;--line:#d9e0dc;--card:#fff}
+  @media (prefers-color-scheme:dark){:root{--bg:#121816;--fg:#e6ece9;--muted:#9aa8a1;--accent:#3fae86;--ok:#7fd49f;--bad:#f2a49d;--line:#2b3631;--card:#1a221f;color-scheme:dark}}
+  body{margin:0;font:17px/1.5 system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg)}
+  main{max-width:480px;margin:0 auto;padding:24px 16px;display:flex;flex-direction:column;gap:14px}
+  h1{font-size:22px;margin:0}
+  label{font-weight:600;font-size:15px}
+  input{font:inherit;padding:12px;border:1px solid var(--line);border-radius:9px;width:100%;box-sizing:border-box;background:var(--card);color:var(--fg)}
+  button{font:inherit;padding:14px;border-radius:9px;border:0;background:var(--accent);color:#fff;width:100%}
+  button:disabled{opacity:.5}
+  .kutu{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;font-variant-numeric:tabular-nums}
+  .muted{color:var(--muted)} .ok{color:var(--ok)} .bad{color:var(--bad)}
+  .alan{display:flex;flex-direction:column;gap:6px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1>Sınıf konumunu kaydet</h1>
+  <form id="giris" class="alan">
+    <label for="sifre">Öğretmen şifresi</label>
+    <input id="sifre" type="password" autocomplete="current-password" required>
+    <button>Giriş</button>
+    <div id="girisnot" class="bad" aria-live="polite"></div>
+  </form>
+  <div id="panel" hidden style="display:flex;flex-direction:column;gap:14px">
+    <p class="muted" style="margin:0">Sınıfın ortasında durun. Konum birkaç saniye içinde netleşir; en iyi ölçüm tutulur.</p>
+    <div class="kutu" id="olcum">Konum bekleniyor…</div>
+    <div class="alan">
+      <label for="ad">Sınıfın adı</label>
+      <input id="ad" placeholder="ör. Z-12" maxlength="30">
+    </div>
+    <button id="kaydet" disabled>Burayı bu sınıfın konumu yap</button>
+    <div id="sonuc" aria-live="polite"></div>
+  </div>
+</main>
+<script src="ayar.js"></script>
+<script src="ortak.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let tok = null, en = null;
+try { tok = sessionStorage.getItem('yoklama_tok'); } catch (e) {}
+
+function paneliAc() {
+  $('giris').hidden = true; $('panel').hidden = false;
+  if (!navigator.geolocation) { $('olcum').textContent = 'Bu tarayıcı konum vermiyor.'; $('olcum').className = 'kutu bad'; return; }
+  const w = navigator.geolocation.watchPosition(p => {
+    const c = p.coords;
+    if (!en || c.accuracy < en.acc) en = { lat: c.latitude, lon: c.longitude, acc: c.accuracy };
+    $('olcum').textContent = `En iyi ölçüm: ±${Math.round(en.acc)} m` + (en.acc > 50 ? ' (biraz bekleyin, netleşebilir)' : ' ✓');
+    $('olcum').className = 'kutu';
+    $('kaydet').disabled = false;
+  }, e => { $('olcum').textContent = 'Konum alınamadı: ' + (e.code === 1 ? 'izin verilmedi. Tarayıcı ayarlarından bu siteye konum izni verin.' : e.message); $('olcum').className = 'kutu bad'; },
+  { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+  setTimeout(() => navigator.geolocation.clearWatch(w), 90000);
+}
+if (tok) paneliAc();
+$('panel').hidden = !tok;
+
+$('giris').onsubmit = async ev => {
+  ev.preventDefault();
+  $('girisnot').textContent = '';
+  try {
+    const r = await api({ islem: 'giris', sifre: $('sifre').value });
+    if (!r.ok) { $('girisnot').textContent = r.neden; return; }
+    tok = r.tok; try { sessionStorage.setItem('yoklama_tok', tok); } catch (e) {}
+    paneliAc();
+  } catch (e) { $('girisnot').textContent = 'Sunucuya ulaşılamadı.'; }
+};
+
+$('kaydet').onclick = async () => {
+  if (!en) return;
+  if (!$('ad').value.trim()) { $('sonuc').textContent = 'Sınıfa bir ad verin.'; $('sonuc').className = 'bad'; $('ad').focus(); return; }
+  $('kaydet').disabled = true;
+  try {
+    const r = await api({ islem: 'sinifKaydet', tok, ad: $('ad').value, lat: en.lat, lon: en.lon, acc: en.acc });
+    if (r.yetki === false) { tok = null; try { sessionStorage.removeItem('yoklama_tok'); } catch (e) {} $('panel').hidden = true; $('giris').hidden = false; $('girisnot').textContent = r.neden; return; }
+    $('sonuc').textContent = r.ok ? `${$('ad').value.trim()} ${r.guncellendi ? 'güncellendi' : 'kaydedildi'} (±${Math.round(en.acc)} m). Yoklama ekranında listeden seçebilirsiniz.` : r.neden;
+    $('sonuc').className = r.ok ? 'ok' : 'bad';
+  } catch (e) { $('sonuc').textContent = 'Sunucuya ulaşılamadı.'; $('sonuc').className = 'bad'; }
+  $('kaydet').disabled = false;
+};
+</script>
+</body>
+</html>

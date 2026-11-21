@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yoklama</title>
+<style>
+  :root{--bg:#f3f5f4;--fg:#17201c;--muted:#5d6b64;--accent:#0f6b4f;--ok:#1d7a3e;--okbg:#dff1e5;--bad:#b3261e;--badbg:#f8dedc;--warn:#8a5a00;--line:#d9e0dc;--card:#fff}
+  @media (prefers-color-scheme:dark){:root{--bg:#121816;--fg:#e6ece9;--muted:#9aa8a1;--accent:#3fae86;--ok:#7fd49f;--okbg:#1d3326;--bad:#f2a49d;--badbg:#3a1f1d;--warn:#e6b45a;--line:#2b3631;--card:#1a221f;color-scheme:dark}}
+  body{margin:0;font:17px/1.5 system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg)}
+  main{max-width:440px;margin:0 auto;padding:28px 16px;display:flex;flex-direction:column;gap:14px}
+  h1{font-size:24px;margin:0}
+  label{font-weight:600;font-size:15px}
+  input{font:inherit;font-size:20px;padding:12px;border:1px solid var(--line);border-radius:9px;width:100%;box-sizing:border-box;background:var(--card);color:var(--fg)}
+  button{font:inherit;padding:15px;border-radius:9px;border:0;background:var(--accent);color:#fff;width:100%}
+  button:disabled{opacity:.55}
+  button:focus-visible,input:focus-visible{outline:3px solid #8cc9b3;outline-offset:2px}
+  .muted{color:var(--muted);font-size:15px}
+  .alan{display:flex;flex-direction:column;gap:6px}
+  .sonuc{border-radius:10px;padding:18px;font-size:19px}
+  .ok{background:var(--okbg);color:var(--ok)} .bad{background:var(--badbg);color:var(--bad)}
+  .uyari{color:var(--warn)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1>Yoklama</h1>
+  <div id="durum" class="muted" aria-live="polite">QR kontrol ediliyor…</div>
+  <form id="f" hidden>
+    <div class="alan">
+      <label for="no">Öğrenci numarası</label>
+      <input id="no" inputmode="numeric" autocomplete="off" required>
+    </div>
+    <div class="alan" id="adalan" hidden style="margin-top:12px">
+      <label for="ad">Ad Soyad <span class="muted">(isteğe bağlı)</span></label>
+      <input id="ad" autocomplete="name">
+    </div>
+    <p class="muted">Gönderince telefon konum izni isteyecek. Yoklama yalnızca sınıftan alınır.</p>
+    <button id="gonder">Yoklamaya katıl</button>
+  </form>
+  <div id="sonuc" class="sonuc" hidden aria-live="polite"></div>
+</main>
+<script src="ayar.js"></script>
+<script src="ortak.js"></script>
+<script>
+const t = new URLSearchParams(location.search).get('t') || '';
+const $ = id => document.getElementById(id);
+let bilet = null;
+
+function sonuc(ok, metin) {
+  $('f').hidden = true; $('durum').hidden = true;
+  const s = $('sonuc'); s.hidden = false; s.className = 'sonuc ' + (ok ? 'ok' : 'bad');
+  s.textContent = (ok ? '✓ ' : '✗ ') + metin;
+}
+
+(async () => {
+  if (!t) { $('durum').textContent = 'Bu sayfa sınıftaki ekranda gösterilen QR ile açılır.'; return; }
+  try {
+    const r = await api({ islem: 'bilet', t });
+    if (!r.ok) return sonuc(false, r.neden);
+    bilet = r.bilet;
+    $('adalan').hidden = !!r.listeVar;
+    $('durum').textContent = (r.ders ? r.ders + ' · ' : '') + `Numaranızı girin (${Math.round(r.sure / 60)} dakikanız var).`;
+    $('f').hidden = false; $('no').focus();
+  } catch (e) { sonuc(false, 'Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip QR\'ı yeniden okutun.'); }
+})();
+
+$('f').onsubmit = async ev => {
+  ev.preventDefault();
+  const b = $('gonder'); b.disabled = true; b.textContent = 'Konum alınıyor…';
+  const k = await konumAl();
+  b.textContent = 'Gönderiliyor…';
+  const govde = { islem: 'katil', bilet, no: $('no').value, ad: $('ad').value, cihaz: cihazId() };
+  if (k.hata) govde.konum_hata = k.hata; else Object.assign(govde, k);
+  try {
+    const r = await api(govde);
+    if (r.ok) return sonuc(true, r.mesaj);
+    if (r.tekrar) { b.disabled = false; b.textContent = 'Yoklamaya katıl'; $('durum').textContent = r.neden; $('durum').className = 'uyari'; return; }
+    sonuc(false, r.neden);
+  } catch (e) { b.disabled = false; b.textContent = 'Yoklamaya katıl'; $('durum').textContent = 'Gönderilemedi, tekrar basın.'; $('durum').className = 'uyari'; }
+};
+</script>
+</body>
+</html>
